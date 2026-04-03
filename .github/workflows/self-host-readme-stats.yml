@@ -29,11 +29,22 @@ jobs:
       - name: Start stats server
         run: |
           cd /tmp/github-readme-stats
-          npm run start &>/tmp/ghrs.log &
-          for i in {1..30}; do
-            if curl -sS http://localhost:3000/ >/dev/null; then break; fi
+          # export PORT and HOST so server binds predictably, then start in background
+          export PORT=3000
+          export HOST=0.0.0.0
+          echo "Starting server with PORT=$PORT HOST=$HOST"
+          nohup npm run start > /tmp/ghrs.log 2>&1 &
+
+          # wait for server to accept connections (max 60s)
+          for i in {1..60}; do
+            if curl -sS --fail http://localhost:3000/ >/dev/null 2>&1; then
+              echo "server is up"
+              break
+            fi
             sleep 1
           done
+
+          echo "=== server log ==="
           tail -n +1 /tmp/ghrs.log || true
 
       - name: Generate SVGs
@@ -41,8 +52,9 @@ jobs:
           USERNAME: 0dawara
         run: |
           mkdir -p generated
-          curl -sS "http://localhost:3000/api?username=${USERNAME}&show_icons=true&theme=midnight-purple&hide_border=true" -o generated/stats.svg
-          curl -sS "http://localhost:3000/api/top-langs/?username=${USERNAME}&layout=compact&theme=midnight-purple&hide_border=true" -o generated/top-langs.svg
+          # try multiple times in case server is still warming up
+          curl --fail --retry 10 --retry-delay 2 --retry-connrefused -sS "http://localhost:3000/api?username=${USERNAME}&show_icons=true&theme=midnight-purple&hide_border=true" -o generated/stats.svg
+          curl --fail --retry 10 --retry-delay 2 --retry-connrefused -sS "http://localhost:3000/api/top-langs/?username=${USERNAME}&layout=compact&theme=midnight-purple&hide_border=true" -o generated/top-langs.svg
           ls -l generated
 
       - name: Deploy generated images to gh-pages
