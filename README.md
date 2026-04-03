@@ -31,7 +31,6 @@ I'm a passionate developer who loves tinkering with technology beyond its intend
 
 ## 📊 GitHub Stats
 
-![Thiago's GitHub stats](./profile/stats.svg)
 ![Top Languages](./profile/top-langs.svg)
 
 ## 🚀 Featured Projects
